@@ -1,19 +1,34 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { ClaudeSessionTracker } from './claudeSession';
 
-/**
- * Terminais que o usuário renomeou na mão. A renomeação automática nunca
- * sobrescreve esses — a escolha manual sempre vence.
- */
+/** Comando cujo título de sessão sabemos ler (grava `ai-title` em ~/.claude). */
+const CLAUDE_COMMAND = 'claude';
+
+/** Terminais renomeados na mão. A renomeação automática nunca os sobrescreve. */
 const manuallyRenamed = new WeakSet<vscode.Terminal>();
+
+/** Nome que queremos em cada terminal (aplicado quando ele fica ativo). */
+const desiredNames = new Map<vscode.Terminal, string>();
+
+/** Último nome já aplicado, pra evitar renomear à toa. */
+const appliedNames = new Map<vscode.Terminal, string>();
+
+/** Rastreadores de sessão do Claude por terminal. */
+const trackers = new Map<vscode.Terminal, ClaudeSessionTracker>();
 
 export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.commands.registerCommand('rename-tabs.renameTerminal', renameActiveTerminalCommand),
+    vscode.window.onDidChangeActiveTerminal((terminal) => {
+      if (terminal) {
+        void flush(terminal);
+      }
+    }),
+    vscode.window.onDidCloseTerminal(cleanupTerminal),
   );
 
-  // A renomeação automática depende de shell integration, disponível a partir
-  // do VS Code/Cursor 1.93. Se não existir, só o comando manual funciona.
+  // Renomeação automática depende de shell integration (VS Code/Cursor >= 1.93).
   if (typeof vscode.window.onDidStartTerminalShellExecution === 'function') {
     context.subscriptions.push(
       vscode.window.onDidStartTerminalShellExecution(handleShellExecution),
@@ -22,8 +37,15 @@ export function activate(context: vscode.ExtensionContext): void {
 }
 
 export function deactivate(): void {
-  // nada a limpar
+  for (const tracker of trackers.values()) {
+    tracker.dispose();
+  }
+  trackers.clear();
 }
+
+// ---------------------------------------------------------------------------
+// Comando manual
+// ---------------------------------------------------------------------------
 
 async function renameActiveTerminalCommand(): Promise<void> {
   const terminal = vscode.window.activeTerminal;
@@ -35,7 +57,7 @@ async function renameActiveTerminalCommand(): Promise<void> {
   const name = await vscode.window.showInputBox({
     prompt: 'Novo nome para o terminal ativo',
     value: terminal.name,
-    placeHolder: 'ex.: claude · rename-tabs',
+    placeHolder: 'ex.: PROJ-123 · login',
   });
   if (name === undefined) {
     return; // cancelado
@@ -45,9 +67,15 @@ async function renameActiveTerminalCommand(): Promise<void> {
     return;
   }
 
-  await applyName(trimmed);
   manuallyRenamed.add(terminal);
+  desiredNames.set(terminal, trimmed);
+  appliedNames.delete(terminal); // força a reaplicação
+  await flush(terminal);
 }
+
+// ---------------------------------------------------------------------------
+// Renomeação automática
+// ---------------------------------------------------------------------------
 
 async function handleShellExecution(
   event: vscode.TerminalShellExecutionStartEvent,
@@ -67,28 +95,87 @@ async function handleShellExecution(
     return;
   }
 
-  const watched = config.get<string[]>('autoRename.watchedCommands', ['claude']);
+  const watched = config.get<string[]>('autoRename.watchedCommands', [CLAUDE_COMMAND]);
   if (!watched.includes(command)) {
     return;
   }
 
-  // Só renomeia o terminal que está ativo. O comando de renomear atua sobre o
-  // terminal ativo, e evitar mexer em terminais em segundo plano previne roubo
-  // de foco. Na prática, quando você roda `claude`, esse terminal está focado.
-  if (vscode.window.activeTerminal !== terminal) {
-    return;
-  }
-
+  // Nome provisório imediato (o título do Claude leva alguns segundos).
   const template = config.get<string>('autoRename.template', '${command} · ${folder}');
-  await applyName(renderTemplate(template, command, terminal));
+  setDesiredAuto(terminal, renderTemplate(template, command, terminal));
+
+  // Se for o Claude, começa a acompanhar o título da sessão.
+  if (command === CLAUDE_COMMAND && config.get<boolean>('claudeTitle.enabled', true)) {
+    startClaudeTracking(terminal);
+  }
 }
 
-async function applyName(name: string): Promise<void> {
-  await vscode.commands.executeCommand('workbench.action.terminal.renameWithArg', { name });
+function startClaudeTracking(terminal: vscode.Terminal): void {
+  const cwd = terminalCwd(terminal);
+  if (!cwd) {
+    return; // sem cwd não dá pra achar o diretório da sessão
+  }
+
+  // Recomeça do zero (ex.: --resume abre outra sessão no mesmo terminal).
+  trackers.get(terminal)?.dispose();
+
+  const tracker = new ClaudeSessionTracker({
+    cwd,
+    onTitle: (title) => {
+      const maxLength = vscode.workspace
+        .getConfiguration('renameTabs')
+        .get<number>('claudeTitle.maxLength', 40);
+      setDesiredAuto(terminal, formatTitle(title, maxLength));
+    },
+  });
+  trackers.set(terminal, tracker);
+}
+
+// ---------------------------------------------------------------------------
+// Aplicação do nome (só quando o terminal está ativo)
+// ---------------------------------------------------------------------------
+
+function setDesiredAuto(terminal: vscode.Terminal, name: string): void {
+  if (manuallyRenamed.has(terminal)) {
+    return;
+  }
+  if (desiredNames.get(terminal) === name) {
+    return;
+  }
+  desiredNames.set(terminal, name);
+  void flush(terminal);
 }
 
 /**
- * Extrai o comando principal de uma linha de comando, sem caminho nem extensão.
+ * Aplica o nome desejado no terminal — mas só se ele for o ativo, porque o
+ * comando de renomear atua sobre o terminal ativo. Se não for, fica pendente e
+ * é aplicado quando o terminal ganhar foco (onDidChangeActiveTerminal).
+ */
+async function flush(terminal: vscode.Terminal): Promise<void> {
+  if (terminal !== vscode.window.activeTerminal) {
+    return;
+  }
+  const want = desiredNames.get(terminal);
+  if (!want || appliedNames.get(terminal) === want) {
+    return;
+  }
+  appliedNames.set(terminal, want);
+  await vscode.commands.executeCommand('workbench.action.terminal.renameWithArg', { name: want });
+}
+
+function cleanupTerminal(terminal: vscode.Terminal): void {
+  trackers.get(terminal)?.dispose();
+  trackers.delete(terminal);
+  desiredNames.delete(terminal);
+  appliedNames.delete(terminal);
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Comando principal de uma linha de comando, sem caminho nem extensão.
  * Ex.: "/usr/local/bin/claude --resume" -> "claude".
  */
 function firstCommandToken(commandLine: string): string | undefined {
@@ -109,6 +196,28 @@ function renderTemplate(template: string, command: string, terminal: vscode.Term
     .replace(/\$\{cwd\}/g, cwd);
 }
 
+function formatTitle(title: string, maxLength: number): string {
+  const clean = title.replace(/\s+/g, ' ').trim();
+  if (maxLength > 0 && clean.length > maxLength) {
+    return clean.slice(0, maxLength - 1).trimEnd() + '…';
+  }
+  return clean;
+}
+
+function terminalCwd(terminal: vscode.Terminal): string | undefined {
+  const cwdUri = terminal.shellIntegration?.cwd;
+  if (cwdUri) {
+    return cwdUri.fsPath;
+  }
+  const folders = vscode.workspace.workspaceFolders;
+  return folders && folders.length > 0 ? folders[0].uri.fsPath : undefined;
+}
+
+function terminalCwdName(terminal: vscode.Terminal): string | undefined {
+  const cwd = terminalCwd(terminal);
+  return cwd ? path.basename(cwd) : undefined;
+}
+
 function workspaceFolderName(terminal: vscode.Terminal): string {
   const cwdUri = terminal.shellIntegration?.cwd;
   if (cwdUri) {
@@ -121,10 +230,5 @@ function workspaceFolderName(terminal: vscode.Terminal): string {
   if (folders && folders.length > 0) {
     return folders[0].name;
   }
-  return 'terminal';
-}
-
-function terminalCwdName(terminal: vscode.Terminal): string | undefined {
-  const cwdUri = terminal.shellIntegration?.cwd;
-  return cwdUri ? path.basename(cwdUri.fsPath) : undefined;
+  return terminalCwdName(terminal) ?? 'terminal';
 }

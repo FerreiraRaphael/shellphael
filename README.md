@@ -10,11 +10,24 @@ pra navegar por Ctrl+P, fica impossível distinguir um do outro.
 
 ## O que a extensão faz
 
-- **Renomeação automática**: quando você roda um comando observado (por padrão,
-  `claude`), a aba do terminal é renomeada pra algo como `claude · nome-da-pasta`.
+- **Título da sessão do Claude**: quando você roda `claude`, a extensão lê o
+  título gerado pela sessão (o `ai-title` que o Claude grava em `~/.claude`) e
+  usa como nome da aba — atualizando **ao vivo** conforme a conversa evolui.
+  Enquanto o título não existe, usa um nome provisório (`claude · nome-da-pasta`).
+- **Renomeação automática de outros comandos**: dá pra observar outros comandos
+  além do `claude` (ex.: `npm`, `ssh`) e nomear a aba pelo comando + pasta.
 - **Renomeação manual**: o comando **Rename Tabs: Renomear terminal ativo**
-  (atalho `Cmd+Alt+R`) abre um input pra você digitar qualquer nome. A escolha
-  manual sempre vence — o automático não sobrescreve depois.
+  (atalho `Cmd+Alt+R`) abre um input pra você digitar qualquer nome — útil pra
+  botar o número do ticket ou o nome da branch. A escolha manual sempre vence: o
+  automático não sobrescreve depois.
+
+### Como funciona a ligação terminal → sessão
+
+O Claude guarda cada sessão em `~/.claude/projects/<pasta-encodada>/<id>.jsonl`.
+A extensão descobre a pasta pelo cwd do terminal e liga o terminal ao arquivo de
+sessão que passa a ser escrito logo após o `claude` iniciar. Por limitação da
+API, o novo nome é aplicado quando o terminal está **ativo/focado** — o que
+casa com o fluxo de conversar com o Claude na aba focada.
 
 ## Configuração
 
@@ -22,7 +35,9 @@ pra navegar por Ctrl+P, fica impossível distinguir um do outro.
 | --- | --- | --- |
 | `renameTabs.autoRename.enabled` | `true` | Liga/desliga a renomeação automática. |
 | `renameTabs.autoRename.watchedCommands` | `["claude"]` | Comandos que disparam o auto-nome. |
-| `renameTabs.autoRename.template` | `${command} · ${folder}` | Modelo do nome. Variáveis: `${command}`, `${folder}`, `${cwd}`. |
+| `renameTabs.autoRename.template` | `${command} · ${folder}` | Nome provisório. Variáveis: `${command}`, `${folder}`, `${cwd}`. |
+| `renameTabs.claudeTitle.enabled` | `true` | Usa o título da sessão do Claude como nome da aba. |
+| `renameTabs.claudeTitle.maxLength` | `40` | Corta títulos longos (0 = não corta). |
 
 ## Requisitos
 

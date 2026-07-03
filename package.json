@@ -2,7 +2,7 @@
   "name": "rename-tabs",
   "displayName": "Rename Tabs",
   "description": "Renomeia abas de terminal automaticamente (detectando comandos como o Claude Code) e manualmente, pra ficarem fáceis de achar no Ctrl+P.",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "raphael",
   "license": "MIT",
   "repository": {
@@ -55,7 +55,17 @@
         "renameTabs.autoRename.template": {
           "type": "string",
           "default": "${command} · ${folder}",
-          "markdownDescription": "Modelo do nome automático. Variáveis: `${command}` (comando detectado), `${folder}` (pasta do workspace do terminal), `${cwd}` (nome da pasta atual)."
+          "markdownDescription": "Modelo do nome provisório (usado até o título da sessão aparecer). Variáveis: `${command}` (comando detectado), `${folder}` (pasta do workspace do terminal), `${cwd}` (nome da pasta atual)."
+        },
+        "renameTabs.claudeTitle.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Quando o comando for 'claude', usa o título gerado pela sessão (ai-title) como nome da aba, atualizando ao vivo conforme a conversa evolui."
+        },
+        "renameTabs.claudeTitle.maxLength": {
+          "type": "number",
+          "default": 40,
+          "description": "Tamanho máximo do título da sessão na aba (títulos maiores são cortados com '…'). Use 0 pra não cortar."
         }
       }
     }
