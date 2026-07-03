@@ -7,7 +7,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/raphael/shellphael"
+    "url": "https://github.com/FerreiraRaphael/shellphael"
   },
   "engines": {
     "vscode": "^1.93.0"
