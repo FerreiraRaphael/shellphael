@@ -1,0 +1,74 @@
+{
+  "name": "rename-tabs",
+  "displayName": "Rename Tabs",
+  "description": "Renomeia abas de terminal automaticamente (detectando comandos como o Claude Code) e manualmente, pra ficarem fáceis de achar no Ctrl+P.",
+  "version": "0.0.1",
+  "publisher": "raphael",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/raphael/rename-tabs"
+  },
+  "engines": {
+    "vscode": "^1.93.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "rename-tabs.renameTerminal",
+        "title": "Rename Tabs: Renomear terminal ativo",
+        "category": "Rename Tabs"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "rename-tabs.renameTerminal",
+        "key": "ctrl+alt+r",
+        "mac": "cmd+alt+r"
+      }
+    ],
+    "configuration": {
+      "title": "Rename Tabs",
+      "properties": {
+        "renameTabs.autoRename.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Renomeia terminais automaticamente quando um comando observado é executado."
+        },
+        "renameTabs.autoRename.watchedCommands": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "claude"
+          ],
+          "description": "Comandos que disparam a renomeação automática. Casa pelo primeiro token da linha de comando (ex.: 'claude')."
+        },
+        "renameTabs.autoRename.template": {
+          "type": "string",
+          "default": "${command} · ${folder}",
+          "markdownDescription": "Modelo do nome automático. Variáveis: `${command}` (comando detectado), `${folder}` (pasta do workspace do terminal), `${cwd}` (nome da pasta atual)."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package --allow-missing-repository --skip-license"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/vscode": "^1.93.0",
+    "@vscode/vsce": "^3.2.0",
+    "typescript": "^5.6.0"
+  }
+}
