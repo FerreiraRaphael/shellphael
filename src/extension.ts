@@ -16,6 +16,10 @@ const trackers = new Map<vscode.Terminal, ClaudeSessionTracker>();
 
 export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'rename-tabs.closeEditorsKeepTerminals',
+      closeEditorsKeepTerminals,
+    ),
     vscode.window.onDidChangeActiveTerminal((terminal) => {
       if (terminal) {
         void flush(terminal);
@@ -37,6 +41,25 @@ export function deactivate(): void {
     tracker.dispose();
   }
   trackers.clear();
+}
+
+// ---------------------------------------------------------------------------
+// Fechar editores mantendo os terminais
+// ---------------------------------------------------------------------------
+
+/**
+ * Fecha todas as abas de editor (arquivos, diffs, previews, etc.) mas preserva
+ * os terminais — que na área de editor aparecem como abas e seriam fechados
+ * pelo "Fechar todos os editores" nativo.
+ */
+async function closeEditorsKeepTerminals(): Promise<void> {
+  const tabsToClose = vscode.window.tabGroups.all
+    .flatMap((group) => group.tabs)
+    .filter((tab) => !(tab.input instanceof vscode.TabInputTerminal));
+
+  if (tabsToClose.length > 0) {
+    await vscode.window.tabGroups.close(tabsToClose);
+  }
 }
 
 // ---------------------------------------------------------------------------

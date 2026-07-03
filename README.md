@@ -16,6 +16,11 @@ pra navegar por Ctrl+P, fica impossível distinguir um do outro.
   Enquanto o título não existe, usa um nome provisório (`claude · nome-da-pasta`).
 - **Renomeação automática de outros comandos**: dá pra observar outros comandos
   além do `claude` (ex.: `npm`, `ssh`) e nomear a aba pelo comando + pasta.
+- **Fechar editores mantendo os terminais**: o comando **Rename Tabs: Fechar
+  editores (manter terminais)** fecha todas as abas de arquivos/editores mas
+  ignora os terminais que estão na área de editor. Ele assume o atalho
+  `Cmd+K Cmd+W` (`Ctrl+K Ctrl+W` no Windows/Linux), no lugar do "Fechar todos os
+  editores" nativo — que fecharia os terminais junto.
 
 ### Como funciona a ligação terminal → sessão
 

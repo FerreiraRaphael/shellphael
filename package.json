@@ -20,6 +20,25 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "commands": [
+      {
+        "command": "rename-tabs.closeEditorsKeepTerminals",
+        "title": "Rename Tabs: Fechar editores (manter terminais)",
+        "category": "Rename Tabs"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "rename-tabs.closeEditorsKeepTerminals",
+        "key": "ctrl+k ctrl+w",
+        "mac": "cmd+k cmd+w"
+      },
+      {
+        "command": "-workbench.action.closeAllEditors",
+        "key": "ctrl+k ctrl+w",
+        "mac": "cmd+k cmd+w"
+      }
+    ],
     "configuration": {
       "title": "Rename Tabs",
       "properties": {
