@@ -1,13 +1,13 @@
 {
-  "name": "rename-tabs",
-  "displayName": "Rename Tabs",
-  "description": "Renomeia abas de terminal automaticamente (detectando comandos como o Claude Code), pra ficarem fáceis de achar no Ctrl+P.",
+  "name": "shellphael",
+  "displayName": "Shellphael 🐢",
+  "description": "Dá nomes úteis às abas de terminal (título da sessão do Claude, processo, package, porta) e fecha os editores mantendo os terminais.",
   "version": "0.0.2",
   "publisher": "raphael",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/raphael/rename-tabs"
+    "url": "https://github.com/raphael/shellphael"
   },
   "engines": {
     "vscode": "^1.93.0"
@@ -22,14 +22,14 @@
   "contributes": {
     "commands": [
       {
-        "command": "rename-tabs.closeEditorsKeepTerminals",
-        "title": "Rename Tabs: Fechar editores (manter terminais)",
-        "category": "Rename Tabs"
+        "command": "shellphael.closeEditorsKeepTerminals",
+        "title": "Shellphael: Fechar editores (manter terminais)",
+        "category": "Shellphael"
       }
     ],
     "keybindings": [
       {
-        "command": "rename-tabs.closeEditorsKeepTerminals",
+        "command": "shellphael.closeEditorsKeepTerminals",
         "key": "ctrl+k ctrl+w",
         "mac": "cmd+k cmd+w"
       },
@@ -40,34 +40,49 @@
       }
     ],
     "configuration": {
-      "title": "Rename Tabs",
+      "title": "Shellphael",
       "properties": {
-        "renameTabs.autoRename.enabled": {
+        "shellphael.autoRename.enabled": {
           "type": "boolean",
           "default": true,
           "description": "Renomeia terminais automaticamente quando um comando observado é executado."
         },
-        "renameTabs.autoRename.watchedCommands": {
+        "shellphael.autoRename.watchedCommands": {
           "type": "array",
           "items": {
             "type": "string"
           },
           "default": [
-            "claude"
+            "claude",
+            "npm",
+            "pnpm",
+            "yarn",
+            "bun",
+            "npx",
+            "node",
+            "deno",
+            "uv",
+            "uvx",
+            "poetry",
+            "pdm",
+            "rye",
+            "pipenv",
+            "python",
+            "python3"
           ],
-          "description": "Comandos que disparam a renomeação automática. Casa pelo primeiro token da linha de comando (ex.: 'claude')."
+          "description": "Comandos que disparam a renomeação automática. Casa pelo binário principal da linha de comando (ex.: 'claude', 'npm', 'uv'), ignorando caminho e atribuições de ambiente à frente."
         },
-        "renameTabs.autoRename.template": {
+        "shellphael.autoRename.template": {
           "type": "string",
-          "default": "${command} · ${folder}",
-          "markdownDescription": "Modelo do nome provisório (usado até o título da sessão aparecer). Variáveis: `${command}` (comando detectado), `${folder}` (pasta do workspace do terminal), `${cwd}` (nome da pasta atual)."
+          "default": "${command} ${label} · ${package} · ${port}",
+          "markdownDescription": "Modelo do nome da aba. Segmentos separados por `·` que ficarem vazios são removidos. Variáveis: `${command}` (binário, ex.: `npm`), `${label}` (token que dá sentido ao comando, ex.: `dev`, `pytest`, `server.js`), `${package}` (nome do projeto lido do `package.json`/`pyproject.toml` mais próximo), `${cwd}` (pasta atual do terminal), `${folder}` (pasta do workspace), `${port}` (porta, quando explícita na linha de comando)."
         },
-        "renameTabs.claudeTitle.enabled": {
+        "shellphael.claudeTitle.enabled": {
           "type": "boolean",
           "default": true,
           "description": "Quando o comando for 'claude', usa o título gerado pela sessão (ai-title) como nome da aba, atualizando ao vivo conforme a conversa evolui."
         },
-        "renameTabs.claudeTitle.maxLength": {
+        "shellphael.claudeTitle.maxLength": {
           "type": "number",
           "default": 40,
           "description": "Tamanho máximo do título da sessão na aba (títulos maiores são cortados com '…'). Use 0 pra não cortar."
