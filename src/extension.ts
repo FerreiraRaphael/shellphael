@@ -5,9 +5,6 @@ import { ClaudeSessionTracker } from './claudeSession';
 /** Comando cujo título de sessão sabemos ler (grava `ai-title` em ~/.claude). */
 const CLAUDE_COMMAND = 'claude';
 
-/** Terminais renomeados na mão. A renomeação automática nunca os sobrescreve. */
-const manuallyRenamed = new WeakSet<vscode.Terminal>();
-
 /** Nome que queremos em cada terminal (aplicado quando ele fica ativo). */
 const desiredNames = new Map<vscode.Terminal, string>();
 
@@ -19,7 +16,6 @@ const trackers = new Map<vscode.Terminal, ClaudeSessionTracker>();
 
 export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
-    vscode.commands.registerCommand('rename-tabs.renameTerminal', renameActiveTerminalCommand),
     vscode.window.onDidChangeActiveTerminal((terminal) => {
       if (terminal) {
         void flush(terminal);
@@ -44,36 +40,6 @@ export function deactivate(): void {
 }
 
 // ---------------------------------------------------------------------------
-// Comando manual
-// ---------------------------------------------------------------------------
-
-async function renameActiveTerminalCommand(): Promise<void> {
-  const terminal = vscode.window.activeTerminal;
-  if (!terminal) {
-    vscode.window.showWarningMessage('Rename Tabs: nenhum terminal ativo para renomear.');
-    return;
-  }
-
-  const name = await vscode.window.showInputBox({
-    prompt: 'Novo nome para o terminal ativo',
-    value: terminal.name,
-    placeHolder: 'ex.: PROJ-123 · login',
-  });
-  if (name === undefined) {
-    return; // cancelado
-  }
-  const trimmed = name.trim();
-  if (!trimmed) {
-    return;
-  }
-
-  manuallyRenamed.add(terminal);
-  desiredNames.set(terminal, trimmed);
-  appliedNames.delete(terminal); // força a reaplicação
-  await flush(terminal);
-}
-
-// ---------------------------------------------------------------------------
 // Renomeação automática
 // ---------------------------------------------------------------------------
 
@@ -86,10 +52,6 @@ async function handleShellExecution(
   }
 
   const terminal = event.terminal;
-  if (manuallyRenamed.has(terminal)) {
-    return;
-  }
-
   const command = firstCommandToken(event.execution.commandLine.value);
   if (!command) {
     return;
@@ -136,9 +98,6 @@ function startClaudeTracking(terminal: vscode.Terminal): void {
 // ---------------------------------------------------------------------------
 
 function setDesiredAuto(terminal: vscode.Terminal, name: string): void {
-  if (manuallyRenamed.has(terminal)) {
-    return;
-  }
   if (desiredNames.get(terminal) === name) {
     return;
   }

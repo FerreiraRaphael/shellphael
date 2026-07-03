@@ -16,10 +16,6 @@ pra navegar por Ctrl+P, fica impossível distinguir um do outro.
   Enquanto o título não existe, usa um nome provisório (`claude · nome-da-pasta`).
 - **Renomeação automática de outros comandos**: dá pra observar outros comandos
   além do `claude` (ex.: `npm`, `ssh`) e nomear a aba pelo comando + pasta.
-- **Renomeação manual**: o comando **Rename Tabs: Renomear terminal ativo**
-  (atalho `Cmd+Alt+R`) abre um input pra você digitar qualquer nome — útil pra
-  botar o número do ticket ou o nome da branch. A escolha manual sempre vence: o
-  automático não sobrescreve depois.
 
 ### Como funciona a ligação terminal → sessão
 
@@ -42,7 +38,7 @@ casa com o fluxo de conversar com o Claude na aba focada.
 ## Requisitos
 
 - Cursor / VS Code `>= 1.93` (a renomeação automática usa a API de shell
-  integration). O comando manual funciona sem isso.
+  integration).
 
 ## Desenvolvimento
 

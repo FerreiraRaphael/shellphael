@@ -1,7 +1,7 @@
 {
   "name": "rename-tabs",
   "displayName": "Rename Tabs",
-  "description": "Renomeia abas de terminal automaticamente (detectando comandos como o Claude Code) e manualmente, pra ficarem fáceis de achar no Ctrl+P.",
+  "description": "Renomeia abas de terminal automaticamente (detectando comandos como o Claude Code), pra ficarem fáceis de achar no Ctrl+P.",
   "version": "0.0.2",
   "publisher": "raphael",
   "license": "MIT",
@@ -20,20 +20,6 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
-    "commands": [
-      {
-        "command": "rename-tabs.renameTerminal",
-        "title": "Rename Tabs: Renomear terminal ativo",
-        "category": "Rename Tabs"
-      }
-    ],
-    "keybindings": [
-      {
-        "command": "rename-tabs.renameTerminal",
-        "key": "ctrl+alt+r",
-        "mac": "cmd+alt+r"
-      }
-    ],
     "configuration": {
       "title": "Rename Tabs",
       "properties": {
